@@ -5,7 +5,7 @@ const client = new MongoClient(`mongodb+srv://${process.env.MONGODB_USERNAME}:${
 
 async function start() {
     await client.connect()
-    module.exports = client.db()
+    module.exports = client
     const app = require('./app')
     app.listen(3000)
 }

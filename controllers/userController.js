@@ -1,12 +1,19 @@
 const User = require('../models/User')
 
 exports.home = function(req, res) {
-    res.render('home-guest')
+    if (req.session.user) {
+        res.render('home-dashboard', {username: req.session.user.username})
+    } else {
+        res.render('home-guest')
+    }
 }
 
 exports.login = function(req, res) {
     let user = new User(req.body)
     user.login().then(function(result) {
+        req.session.user = {
+            username: user.data.username
+        }
         res.send(result)
     }).catch(function(err) {
         res.send(err)
