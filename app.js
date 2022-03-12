@@ -15,6 +15,15 @@ let sessionOptions = session({
 app.use(sessionOptions)
 app.use(flash())
 
+
+// with app.use this function will run for every request
+// since its included before the router this info will be avaiilable to the router file
+app.use(function(req, res, next) {
+    // this will be available in ejs templates
+    res.locals.user = req.session.user
+    next()
+})
+
 const router = require('./router')
 
 app.use(express.urlencoded({extended:false})) //boilerplate - allows reading request.body
