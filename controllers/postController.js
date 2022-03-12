@@ -7,7 +7,7 @@ exports.viewCreateScreen = function(req, res) {
 
 exports.create = function(req, res) {
     // Store value in DB in our model
-    let post = new Post(req.body)
+    let post = new Post(req.body, req.session.user._id)
     post.create().then(function() {
         res.send("New post created")
     }).catch(function(err) {
