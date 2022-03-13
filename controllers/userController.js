@@ -1,6 +1,7 @@
 const e = require('connect-flash')
 const { nextTick } = require('process')
 const User = require('../models/User')
+const Post = require('../models/Post')
 
 exports.mustBeLoggedIn = function(req, res, next) {
     if (req.session.user) {
@@ -55,5 +56,27 @@ exports.register = async function(req, res) {
         req.session.save(function() {
             res.redirect('/')
         })
+    })
+}
+
+exports.ifUserExists =function(req, res, next) {
+    User.findByUsername(req.params.username).then(function(userDocument) {
+        req.profileUser = userDocument
+        next()
+    }).catch(function() {
+        res.render('404')
+    })    
+}
+
+exports.profilePostsScreen = function(req, res) {
+    // ask Post model for posts by certain id
+    Post.findByAuthorId(req.profileUser._id).then(function(posts) {
+        res.render('profile', {
+            profileUsername: req.profileUser.username,
+            profileAvatar: req.profileUser.avatar,
+            posts: posts
+        })
+    }).catch(function() {
+        res.render('404')
     })
 }
