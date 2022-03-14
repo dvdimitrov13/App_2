@@ -2,10 +2,11 @@ const postsCollection = require('../db').db().collection('posts')
 const User = require('./User')
 const ObjectId = require('mongodb').ObjectId
 
-let Post = function(data, userid) {
+let Post = function(data, userid, requestedPostId) {
     this.userid = userid
     this.data = data
     this.errors = []
+    this.requestedPostId = requestedPostId
 }
 
 Post.prototype.validate = function() {
@@ -44,7 +45,37 @@ Post.prototype.create = function() {
 
 }
 
-Post._postQuery = function(uniqueOperations) {
+Post.prototype.update = function() {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let post = await Post.findSingleById(this.requestedPostId, this.userid)
+            if (post.isVisitorOwner) {
+                // actually update DB
+                let status = this.actuallyUpdate()
+                resolve(status)
+            } else {
+                reject()
+            }
+        } catch {
+            reject()
+        }
+    })
+}
+
+Post.prototype.actuallyUpdate = function() {
+    return new Promise(async (resolve, reject) => {
+        this.cleanUp
+        this.validate
+        if(!this.errors.length) {
+            await postsCollection.findOneAndUpdate({_id: new ObjectId(this.requestedPostId)}, {$set: {title: this.data.title, body: this.data.body}})
+            resolve("success")
+        } else {
+            resolve("failure")
+        }
+    })
+}
+
+Post._postQuery = function(uniqueOperations, visitorId) {
     return new Promise(async function(resolve, reject) {
         let aggOperations = uniqueOperations.concat([
             {$lookup: {from: "users", localField: "author", foreignField: "_id", as: "authorDocument"}},
@@ -52,6 +83,7 @@ Post._postQuery = function(uniqueOperations) {
                 title: 1,
                 body: 1,
                 createdDate: 1,
+                authorId: "$author",
                 author: {$arrayElemAt: ["$authorDocument", 0]}
             }}
         ])
@@ -60,6 +92,7 @@ Post._postQuery = function(uniqueOperations) {
 
         // clean up author property
         posts = posts.map(function(post) {
+            post.isVisitorOwner = post.authorId.equals(visitorId)
             post.author = {
                 username: post.author.username,
                 avatar: new User(post.author, true).avatar
@@ -70,7 +103,7 @@ Post._postQuery = function(uniqueOperations) {
     })
 }
 
-Post.findSingleById = function(id) {
+Post.findSingleById = function(id, visitorId) {
     return new Promise(async function(resolve, reject) {
         if (typeof(id) != "string" || !ObjectId.isValid(id)) {
             reject()
@@ -79,7 +112,7 @@ Post.findSingleById = function(id) {
         
         let posts = await Post._postQuery([
             {$match: {_id: new ObjectId(id)}}
-        ])
+        ], visitorId)
 
         if (posts.length) {
 

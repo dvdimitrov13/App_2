@@ -19,6 +19,16 @@ app.use(flash())
 // with app.use this function will run for every request
 // since its included before the router this info will be avaiilable to the router file
 app.use(function(req, res, next) {
+    // make flash messages availabe for every request
+    res.locals.errors = req.flash("errors")  
+    res.locals.success = req.flash("success")
+
+    // make current user id available on the req object
+    if (req.session.user) {
+        req.visitorId = req.session.user._id
+    } else {
+        req.visitorId = 0
+    }
     // this will be available in ejs templates
     res.locals.user = req.session.user
     next()
