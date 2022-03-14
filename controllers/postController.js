@@ -8,10 +8,12 @@ exports.viewCreateScreen = function(req, res) {
 exports.create = function(req, res) {
     // Store value in DB in our model
     let post = new Post(req.body, req.session.user._id)
-    post.create().then(function() {
-        res.send("New post created")
-    }).catch(function(err) {
-        res.send(err)
+    post.create().then(function(postId) {
+        req.flash("success", "New post successfully created!")
+        req.session.save(() => res.redirect(`/post/${postId}`))
+    }).catch(function(errs) {
+        errs.forEach(err => req.flash("errors", err))
+        req.session.save(() => res.redirect("/create-post"))
     })
 }
 
@@ -26,8 +28,13 @@ exports.viewSingle = async function(req, res) {
 
 exports.viewEditScreen = async function(req, res) {
     try {
-        let post = await Post.findSingleById(req.params.id)
-        res.render('edit-post', {post: post})
+        let post = await Post.findSingleById(req.params.id, req.visitorId)
+        if (post.isVisitorOwner) {
+            res.render('edit-post', {post: post})
+        } else {
+            req.flash("errors", "You do not have permission to perform that action!")
+            req.session.save(() => res.redirect('/'))
+        }
     } catch {
         res.render('404')
     }

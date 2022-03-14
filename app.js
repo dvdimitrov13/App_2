@@ -2,6 +2,7 @@ const express = require('express')
 const session = require('express-session')
 const MongoStore = require('connect-mongo')
 const flash = require('connect-flash')
+const markdown = require('marked')
 const app = express()
 
 let sessionOptions = session({
@@ -19,6 +20,11 @@ app.use(flash())
 // with app.use this function will run for every request
 // since its included before the router this info will be avaiilable to the router file
 app.use(function(req, res, next) {
+    // allow the use of Markdown from within ejs templates
+    res.locals.filterUserHTML = function(content) {
+        return markdown.parse(content)
+    }
+
     // make flash messages availabe for every request
     res.locals.errors = req.flash("errors")  
     res.locals.success = req.flash("success")

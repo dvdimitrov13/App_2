@@ -1,6 +1,7 @@
 const postsCollection = require('../db').db().collection('posts')
 const User = require('./User')
 const ObjectId = require('mongodb').ObjectId
+const sanitizeHTML = require('sanitize-html')
 
 let Post = function(data, userid, requestedPostId) {
     this.userid = userid
@@ -21,8 +22,40 @@ Post.prototype.cleanUp = function() {
     // get rid of bogus properties
     this.data = {
         author: ObjectId(this.userid),
-        title: this.data.title.trim(),
-        body: this.data.body.trim(),
+        title: sanitizeHTML(this.data.title.trim(), {
+            "allowedAttributes": {
+              "a": ["href", "name", "target"],
+              "iframe": ["allowfullscreen", "frameborder", "src"],
+              "img": ["src"]
+            },
+            "allowedClasses": {},
+            "allowedSchemes": ["http", "https", "mailto"],
+            "allowedTags": [
+              "a", "article", "b", "blockquote", "br", "caption", "code", "del", "details", "div", "em",
+              "h1", "h2", "h3", "h4", "h5", "h6", "hr", "i", "img", "ins", "kbd", "li", "main", "ol",
+              "p", "pre", "section", "span", "strike", "strong", "sub", "summary", "sup", "table",
+              "tbody", "td", "th", "thead", "tr", "u", "ul"
+            ],
+            "filter": null,
+            "transformText": null
+          }),
+        body: sanitizeHTML(this.data.body.trim(), {
+            "allowedAttributes": {
+              "a": ["href", "name", "target"],
+              "iframe": ["allowfullscreen", "frameborder", "src"],
+              "img": ["src"]
+            },
+            "allowedClasses": {},
+            "allowedSchemes": ["http", "https", "mailto"],
+            "allowedTags": [
+              "a", "article", "b", "blockquote", "br", "caption", "code", "del", "details", "div", "em",
+              "h1", "h2", "h3", "h4", "h5", "h6", "hr", "i", "img", "ins", "kbd", "li", "main", "ol",
+              "p", "pre", "section", "span", "strike", "strong", "sub", "summary", "sup", "table",
+              "tbody", "td", "th", "thead", "tr", "u", "ul"
+            ],
+            "filter": null,
+            "transformText": null
+          }),
         createdDate: new Date()
     }
 }
@@ -33,8 +66,8 @@ Post.prototype.create = function() {
         this.validate()
         if (!this.errors.length) {
             // save post in DB
-            postsCollection.insertOne(this.data).then(() => {
-                resolve()
+            postsCollection.insertOne(this.data).then((result) => {
+                resolve(result.insertedId)
             }).catch(() => {
                 this.errors.push('Please try again later.')
             })
@@ -64,8 +97,8 @@ Post.prototype.update = function() {
 
 Post.prototype.actuallyUpdate = function() {
     return new Promise(async (resolve, reject) => {
-        this.cleanUp
-        this.validate
+        this.cleanUp()
+        this.validate()
         if(!this.errors.length) {
             await postsCollection.findOneAndUpdate({_id: new ObjectId(this.requestedPostId)}, {$set: {title: this.data.title, body: this.data.body}})
             resolve("success")
