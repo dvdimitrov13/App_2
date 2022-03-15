@@ -2,6 +2,7 @@ const postsCollection = require('../db').db().collection('posts')
 const User = require('./User')
 const ObjectId = require('mongodb').ObjectId
 const sanitizeHTML = require('sanitize-html')
+const { promiseImpl } = require('ejs')
 
 let Post = function(data, userid, requestedPostId) {
     this.userid = userid
@@ -108,7 +109,7 @@ Post.prototype.actuallyUpdate = function() {
     })
 }
 
-Post._postQuery = function(uniqueOperations, visitorId) {
+Post._postQuery = function(uniqueOperations, visitorId, finalOperations = []) {
     return new Promise(async function(resolve, reject) {
         let aggOperations = uniqueOperations.concat([
             {$lookup: {from: "users", localField: "author", foreignField: "_id", as: "authorDocument"}},
@@ -119,13 +120,14 @@ Post._postQuery = function(uniqueOperations, visitorId) {
                 authorId: "$author",
                 author: {$arrayElemAt: ["$authorDocument", 0]}
             }}
-        ])
+        ]).concat(finalOperations)
 
         let posts = await postsCollection.aggregate(aggOperations).toArray()
 
         // clean up author property
         posts = posts.map(function(post) {
             post.isVisitorOwner = post.authorId.equals(visitorId)
+            post.authorId = undefined
             post.author = {
                 username: post.author.username,
                 avatar: new User(post.author, true).avatar
@@ -174,6 +176,19 @@ Post.delete = function(postIdToDelete, currentUserId) {
                 reject()
             }
         } catch {
+            reject()
+        }
+    })
+}
+
+Post.search= function(searchTerm) {
+    return new Promise(async (resolve, reject) => {
+        if (typeof(searchTerm) == "string") {   
+            let posts = await Post._postQuery([
+                {$match: {$text: {$search: searchTerm}}}
+            ], undefined, [{$sort: {score: {$meta: "textScore"}}}])
+            resolve(posts)
+        } else {
             reject()
         }
     })
