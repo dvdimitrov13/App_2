@@ -213,7 +213,6 @@ Post.getFeed = async function(id) {
         return followedDoc.followedId
     })
 
-    console.log(followedUsers)
     // look for posts where the author is in the above array
     return Post._postQuery([
         {$match: {author: {$in: followedUsers}}},
