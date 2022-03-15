@@ -73,11 +73,13 @@ exports.profilePostsScreen = function(req, res) {
     // ask Post model for posts by certain id
     Post.findByAuthorId(req.profileUser._id).then(function(posts) {
         res.render('profile', {
+            currentPage: "posts",
             profileUsername: req.profileUser.username,
             profileAvatar: req.profileUser.avatar,
             posts: posts,
             isFollowing: req.isFollowing,
-            isVisitorsProfile: req.isVisitorsProfile
+            isVisitorsProfile: req.isVisitorsProfile,
+            counts: {postCount: req.postCount, followerCount: req.followerCount, followingCount: req.followingCount}
         })
     }).catch(function() {
         res.render('404')
@@ -87,17 +89,36 @@ exports.profilePostsScreen = function(req, res) {
 exports.profileFollowersScreen = async function(req, res) {
     try {
         let followers = await Follow.getFollowersById(req.profileUser._id)
-    res.render('profile-followers', {
-        profileUsername: req.profileUser.username,
-        profileAvatar: req.profileUser.avatar,
-        isFollowing: req.isFollowing,
-        isVisitorsProfile: req.isVisitorsProfile,
-        followers: followers
-    })
+        res.render('profile-followers', {
+            currentPage: "followers",
+            profileUsername: req.profileUser.username,
+            profileAvatar: req.profileUser.avatar,
+            isFollowing: req.isFollowing,
+            isVisitorsProfile: req.isVisitorsProfile,
+            followers: followers,
+            counts: {postCount: req.postCount, followerCount: req.followerCount, followingCount: req.followingCount}
+        })
     } catch {
         res.render('404')
     }
 }
+
+exports.profileFollowingScreen = async function(req, res) {
+    try {
+        let following = await Follow.getFollowingById(req.profileUser._id)
+        res.render('profile-following', {
+            currentPage: "following",
+            profileUsername: req.profileUser.username,
+            profileAvatar: req.profileUser.avatar,
+            isFollowing: req.isFollowing,
+            isVisitorsProfile: req.isVisitorsProfile,
+            following: following,
+            counts: {postCount: req.postCount, followerCount: req.followerCount, followingCount: req.followingCount}
+        })
+    } catch {
+
+    }
+} 
 
 exports.sharedProfileData = async function(req, res, next) {
     let isVisitorsProfile = false
@@ -108,5 +129,16 @@ exports.sharedProfileData = async function(req, res, next) {
     }
     req.isVisitorsProfile = isVisitorsProfile
     req.isFollowing = isFollowing
+
+    // retrieve post, follower and following counts
+    let postCountPromise = Post.countPostsByAuthor(req.profileUser._id)
+    let followerCountPromise = Follow.countFollowersById(req.profileUser._id)
+    let followingCountPromise = Follow.countFollowingById(req.profileUser._id)
+    let [postCount, followerCount, followingCount] = await Promise.all([postCountPromise, followerCountPromise, followingCountPromise])
+
+    req.postCount = postCount
+    req.followerCount = followerCount
+    req.followingCount = followingCount
+
     next()
 }
