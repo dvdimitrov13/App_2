@@ -59,7 +59,7 @@ export default class Search {
         if (posts.length) {
             this.resultsArea.innerHTML = ` 
             <div class="list-group shadow-sm">         
-            <div class="list-group-item active"><strong>Search Results</strong> (${posts.length} items found)</div>
+            <div class="list-group-item active"><strong>Search Results</strong> (${posts.length > 1 ? `${posts.length} items found` : `1 item found`} )</div>
             ${posts.map((post) => {
                 let postDate = new Date(post.createdDate)
                 return `
