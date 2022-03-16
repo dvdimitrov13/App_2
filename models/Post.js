@@ -3,7 +3,6 @@ const followsCollection = require('../db').db().collection('follows')
 const User = require('./User')
 const ObjectId = require('mongodb').ObjectId
 const sanitizeHTML = require('sanitize-html')
-const { promiseImpl } = require('ejs')
 
 let Post = function(data, userid, requestedPostId) {
     this.userid = userid

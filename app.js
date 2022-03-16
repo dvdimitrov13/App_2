@@ -3,6 +3,7 @@ const session = require('express-session')
 const MongoStore = require('connect-mongo')
 const flash = require('connect-flash')
 const markdown = require('marked')
+const sanitizeHTML = require('sanitize-html')
 const app = express()
 
 let sessionOptions = session({
@@ -62,8 +63,11 @@ io.use(function(socket, next) {
 io.on("connection", (socket) => {
     if (socket.request.session.user) {
         let user = socket.request.session.user
+
+        socket.emit('welcome', {username: user.username, avatar: user.avatar})
+
         socket.on("chatMessageFromBrowser", function(data) {
-            io.emit("chatMessageFromServer", {message: data.message, username: user.username, avatar: user.avatar})
+            socket.broadcast.emit("chatMessageFromServer", {message: sanitizeHTML(data.message, {allowedTags: [], allowedAttributes: {}}), username: user.username, avatar: user.avatar})
         })
     }
 })
