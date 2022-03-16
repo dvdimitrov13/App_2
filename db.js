@@ -7,7 +7,7 @@ async function start() {
     await client.connect()
     module.exports = client
     const app = require('./app')
-    app.listen(3000)
+    app.listen(process.env.PORT)
 }
 
 start()
